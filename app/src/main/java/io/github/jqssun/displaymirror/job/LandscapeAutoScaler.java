@@ -2,7 +2,6 @@ package io.github.jqssun.displaymirror.job;
 
 import android.opengl.GLES20;
 import android.util.Log;
-import io.github.jqssun.displaymirror.State;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -17,7 +16,6 @@ public class LandscapeAutoScaler {
   private boolean hasSymmetricBlackBar = false;
   private int topBottomBlackBarSize = 0;
   private int leftRightBlackBarSize = 0;
-  private float currentScale = 1f;
 
   public LandscapeAutoScaler(
       ExternalTextureRenderer externalTextureRenderer, int width, int height, int fbo) {
@@ -46,9 +44,7 @@ public class LandscapeAutoScaler {
     if (hasSymmetricBlackBar) {
       float scaleX = (float) (width) / (width - 2 * leftRightBlackBarSize);
       float scaleY = (float) (height) / (height - 2 * topBottomBlackBarSize);
-      // Fill the frame: zoom enough to remove whichever symmetric bars were found.
-      // Math.min() kept the bars because the axis without bars has scale 1.
-      float scale = Math.max(scaleX, scaleY);
+      float scale = Math.min(scaleX, scaleY);
 
       android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
       android.opengl.Matrix.scaleM(landscapeMvpMatrix, 0, scale, scale, 1.0f);
@@ -58,24 +54,10 @@ public class LandscapeAutoScaler {
           String.format(
               "Applying scale transform: scaleX=%.2f, scaleY=%.2f, final scale=%.2f",
               scaleX, scaleY, scale));
-      if (Math.abs(scale - currentScale) > 0.001f) {
-        currentScale = scale;
-        State.log(
-            "Crop bars: left/right="
-                + leftRightBlackBarSize
-                + " top/bottom="
-                + topBottomBlackBarSize
-                + " zoom="
-                + scale);
-      }
     } else {
       // use identity matrix if no symmetric black bar
       for (int i = 0; i < identityMvpMatrix.length; i++) {
         landscapeMvpMatrix[i] = identityMvpMatrix[i];
-      }
-      if (currentScale != 1f) {
-        currentScale = 1f;
-        State.log("Crop bars: none, zoom reset");
       }
     }
   }
@@ -173,21 +155,20 @@ public class LandscapeAutoScaler {
         && rightBlackWidth < horizontalThreshold
         && topBlackHeight < verticalThreshold
         && bottomBlackHeight < verticalThreshold) {
-      // Side-only or top/bottom-only bars are valid. The old code required both axes,
-      // so a tall phone screen mirrored into a landscape stream was never cropped.
-      int sideBar = hasSymmetricHorizontalBars ? Math.min(leftBlackWidth, rightBlackWidth) : 0;
-      int topBottomBar = hasSymmetricVerticalBars ? Math.min(topBlackHeight, bottomBlackHeight) : 0;
-      if (sideBar == 0 && topBottomBar == 0) {
-        hasSymmetricBlackBar = false;
-        leftRightBlackBarSize = 0;
-        topBottomBlackBarSize = 0;
-      } else if (!hasSymmetricBlackBar
-          || sideBar > leftRightBlackBarSize
-          || topBottomBar > topBottomBlackBarSize) {
-        // Only grow the crop to avoid zooming back and forth on small detection jitter.
+      if (hasSymmetricHorizontalBars && hasSymmetricVerticalBars) {
         hasSymmetricBlackBar = true;
-        leftRightBlackBarSize = sideBar;
-        topBottomBlackBarSize = topBottomBar;
+        leftRightBlackBarSize = Math.min(leftBlackWidth, rightBlackWidth);
+        topBottomBlackBarSize = Math.min(topBlackHeight, bottomBlackHeight);
+      } else {
+        if (hasSymmetricHorizontalBars
+            && Math.min(leftBlackWidth, rightBlackWidth) >= leftRightBlackBarSize
+            && Math.min(topBlackHeight, bottomBlackHeight) >= topBottomBlackBarSize) {
+          // keep old value
+        } else {
+          hasSymmetricBlackBar = false;
+          leftRightBlackBarSize = 0;
+          topBottomBlackBarSize = 0;
+        }
       }
     }
     // switch back to default framebuffer
@@ -205,7 +186,6 @@ public class LandscapeAutoScaler {
       return;
     }
     hasSymmetricBlackBar = false;
-    currentScale = 1f;
     Log.d("LandscapeAutoScaler", "exitScale");
     // use identity matrix if no symmetric black bar
     for (int i = 0; i < identityMvpMatrix.length; i++) {
