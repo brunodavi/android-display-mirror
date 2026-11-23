@@ -5,6 +5,7 @@ import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
+import android.media.projection.MediaProjection;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
@@ -15,6 +16,7 @@ import io.github.jqssun.displaymirror.job.CreateVirtualDisplay;
 import io.github.jqssun.displaymirror.job.StreamRenderer;
 import io.github.jqssun.displaymirror.job.VirtualDisplayArgs;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 public class AirPlayEncoder {
   private static final String TAG = "AirPlayEncoder";
@@ -28,6 +30,10 @@ public class AirPlayEncoder {
   public int screenWidth;
   public int screenHeight;
   public int screenDpi;
+
+  public boolean isRunning() {
+    return running;
+  }
 
   public void start(int width, int height, int fps) {
     if (running) return;
@@ -47,89 +53,258 @@ public class AirPlayEncoder {
         width = dm.widthPixels;
         height = dm.heightPixels;
       }
-      screenWidth = width;
-      screenHeight = height;
       screenDpi = 160;
 
-      MediaFormat format =
-          MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, screenWidth, screenHeight);
+      // dynamic discovery: no fixed encoder names, capabilities come from the device
+      List<EncoderSelector.Candidate> candidates = EncoderDiscovery.discover(width, height);
+      State.log(EncoderSelector.describe(candidates, width, height, fps));
+      List<EncoderSelector.Candidate> ordered =
+          EncoderSelector.order(candidates, width, height, fps);
+
+      int encWidth = width;
+      int encHeight = height;
+      if (ordered.isEmpty()) {
+        // no encoder supports the exact negotiated size: adapt respecting alignment and
+        // aspect ratio, and say so loudly (never silently change the stream dimensions)
+        for (EncoderSelector.Candidate c : candidates) {
+          if (!c.surfaceInput) {
+            continue;
+          }
+          int[] fit = EncoderSelector.fitDimensions(width, height, c);
+          List<EncoderSelector.Candidate> fitCandidates =
+              EncoderDiscovery.discover(fit[0], fit[1]);
+          List<EncoderSelector.Candidate> fitOrdered =
+              EncoderSelector.order(fitCandidates, fit[0], fit[1], fps);
+          if (!fitOrdered.isEmpty()) {
+            ordered = fitOrdered;
+            encWidth = fit[0];
+            encHeight = fit[1];
+            State.log(
+                "AirPlay encoder: no encoder supports "
+                    + width
+                    + "x"
+                    + height
+                    + "; adapting to "
+                    + encWidth
+                    + "x"
+                    + encHeight
+                    + " (aspect preserved, aligned)");
+            break;
+          }
+        }
+      }
+      screenWidth = encWidth;
+      screenHeight = encHeight;
+
+      if (ordered.isEmpty()) {
+        State.log(
+            "AirPlay encoder failed: no compatible AVC encoder for "
+                + encWidth
+                + "x"
+                + encHeight
+                + "@"
+                + fps
+                + " (see candidate list above)");
+        AirPlayState.clearTouchTarget();
+        running = false;
+        return;
+      }
+
       boolean airplay1 = Pref.getAirPlay1Mode();
-      format.setInteger(MediaFormat.KEY_BIT_RATE, airplay1 ? 4_000_000 : 8_000_000);
-      format.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
-      format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, airplay1 ? 1 : 3);
-      format.setInteger(
-          MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-        format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1);
-      }
-      format.setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0);
-      if (airplay1) {
-        // baseline@4.0 is the only profile/level combo that clears
-        // every known third-party decoder quirk. See AIRPIN.md.
-        format.setInteger(
-            MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline);
-        format.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel4);
-      }
-
-      codec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC);
-      codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-      Surface inputSurface = codec.createInputSurface();
-      codec.start();
-
       boolean rotate = Pref.getRotateWithContent();
       boolean crop = Pref.getCropBlackBorders();
-      if (CreateVirtualDisplay.streamMirrors() && (rotate || crop)) {
-        pipeline =
-            new StreamRenderer(
-                new VirtualDisplayArgs("AirPlay", screenWidth, screenHeight, fps, screenDpi, false),
-                rotate,
-                crop,
-                inputSurface);
-        pipeline.start(
-            (input, w, h) -> {
+      // keep the projection so display creation can be retried with the next candidate
+      // (createForStream consumes State's projection slot)
+      MediaProjection projection = State.getMediaProjection();
+      Exception lastError = null;
+
+      for (EncoderSelector.Candidate c : ordered) {
+        boolean codecStarted = false;
+        // format variants: 0 = full (unchanged behavior on working devices),
+        // 1 = drop the decoder-only low-latency key, 2 = also drop max-bframes.
+        // every attempt uses a fresh codec instance; failed surfaces are never reused.
+        for (int variant = 0; variant < 3 && !codecStarted; variant++) {
+          MediaFormat format = buildFormat(encWidth, encHeight, fps, airplay1, variant);
+          MediaCodec mc = null;
+          String stage = "createByCodecName";
+          try {
+            mc = MediaCodec.createByCodecName(c.name);
+            stage = "configure";
+            mc.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            stage = "createInputSurface";
+            Surface inputSurface = mc.createInputSurface();
+            stage = "start";
+            mc.start();
+            codecStarted = true;
+            codec = mc;
+            mc = null;
+
+            stage = "createVirtualDisplay";
+            boolean attached;
+            if (CreateVirtualDisplay.streamMirrors() && (rotate || crop)) {
+              pipeline =
+                  new StreamRenderer(
+                      new VirtualDisplayArgs(
+                          "AirPlay", encWidth, encHeight, fps, screenDpi, false),
+                      rotate,
+                      crop,
+                      inputSurface);
+              pipeline.start(
+                  (input, w, h) -> {
+                    virtualDisplay =
+                        CreateVirtualDisplay.createForStream(
+                            new VirtualDisplayArgs("AirPlay", w, h, fps, screenDpi, false), input);
+                    if (virtualDisplay == null) {
+                      State.log("AirPlay: failed to create virtual display");
+                      AirPlayState.clearTouchTarget();
+                    } else {
+                      AirPlayState.setTouchTarget(
+                          virtualDisplay.getDisplay().getDisplayId(), virtualDisplay.getSurface());
+                    }
+                    return virtualDisplay;
+                  });
+              // display creation continues on the render thread, as before
+              attached = true;
+            } else {
+              if (State.getMediaProjection() == null && projection != null) {
+                State.setMediaProjection(projection);
+              }
               virtualDisplay =
                   CreateVirtualDisplay.createForStream(
-                      new VirtualDisplayArgs("AirPlay", w, h, fps, screenDpi, false), input);
+                      new VirtualDisplayArgs(
+                          "AirPlay", encWidth, encHeight, fps, screenDpi, rotate),
+                      inputSurface);
               if (virtualDisplay == null) {
-                State.log("AirPlay: failed to create virtual display");
-                AirPlayState.clearTouchTarget();
+                State.log("AirPlay: failed to create virtual display (encoder=" + c.name + ")");
+                attached = false;
               } else {
                 AirPlayState.setTouchTarget(
-                    virtualDisplay.getDisplay().getDisplayId(), virtualDisplay.getSurface());
+                    virtualDisplay.getDisplay().getDisplayId(), inputSurface);
+                attached = true;
               }
-              return virtualDisplay;
-            });
-      } else {
-        virtualDisplay =
-            CreateVirtualDisplay.createForStream(
-                new VirtualDisplayArgs(
-                    "AirPlay", screenWidth, screenHeight, fps, screenDpi, rotate),
-                inputSurface);
-        if (virtualDisplay == null) {
-          State.log("AirPlay: failed to create virtual display");
-          AirPlayState.clearTouchTarget();
-          running = false;
-          return;
+            }
+
+            if (attached) {
+              encodeThread = new Thread(this::_encodeLoop, "AirPlayEncode");
+              encodeThread.start();
+              State.log(
+                  "AirPlay encoder: "
+                      + encWidth
+                      + "x"
+                      + encHeight
+                      + " dpi="
+                      + screenDpi
+                      + " fps="
+                      + fps
+                      + " encoder="
+                      + c.name
+                      + (variant > 0 ? " (format fallback v" + variant + ")" : ""));
+              State.log("AirPlay encoder format: " + format);
+              return;
+            }
+            // display failed with this codec: release it and move to the next candidate;
+            // other format variants would not change the display outcome
+            releaseCodec();
+            break;
+          } catch (Exception e) {
+            lastError = e;
+            State.log(
+                "AirPlay encoder attempt failed: encoder="
+                    + c.name
+                    + " stage="
+                    + stage
+                    + " variant="
+                    + variant
+                    + " -> "
+                    + e.getClass().getName()
+                    + ": "
+                    + e.getMessage());
+            State.log(Log.getStackTraceString(e));
+            Log.e(TAG, "attempt failed: " + c.name + " stage=" + stage + " variant=" + variant, e);
+            release(mc);
+            releaseCodec();
+            releaseDisplay();
+            if (pipeline != null) {
+              pipeline.stop();
+              pipeline = null;
+            }
+          }
         }
-        AirPlayState.setTouchTarget(virtualDisplay.getDisplay().getDisplayId(), inputSurface);
       }
 
-      encodeThread = new Thread(this::_encodeLoop, "AirPlayEncode");
-      encodeThread.start();
       State.log(
-          "AirPlay encoder: "
-              + screenWidth
-              + "x"
-              + screenHeight
-              + " dpi="
-              + screenDpi
-              + " fps="
-              + fps);
-    } catch (Exception e) {
-      Log.e(TAG, "start failed", e);
-      State.log("AirPlay encoder failed: " + e.getMessage());
+          "AirPlay encoder failed: all "
+              + ordered.size()
+              + " candidate encoder(s) exhausted"
+              + (lastError != null
+                  ? "; last error: "
+                      + lastError.getClass().getName()
+                      + ": "
+                      + lastError.getMessage()
+                  : ""));
       AirPlayState.clearTouchTarget();
       running = false;
+    } catch (Exception e) {
+      Log.e(TAG, "start failed", e);
+      State.log("AirPlay encoder failed: " + e.getClass().getName() + ": " + e.getMessage());
+      State.log(Log.getStackTraceString(e));
+      AirPlayState.clearTouchTarget();
+      running = false;
+    }
+  }
+
+  private static MediaFormat buildFormat(
+      int width, int height, int fps, boolean airplay1, int variant) {
+    MediaFormat format =
+        MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height);
+    format.setInteger(MediaFormat.KEY_BIT_RATE, airplay1 ? 4_000_000 : 8_000_000);
+    format.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
+    format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, airplay1 ? 1 : 3);
+    format.setInteger(
+        MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+    // KEY_LOW_LATENCY is documented for decoders; some encoders reject it at configure()
+    if (variant < 1 && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+      format.setInteger(MediaFormat.KEY_LOW_LATENCY, 1);
+    }
+    if (variant < 2) {
+      format.setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0);
+    }
+    if (airplay1) {
+      // baseline@4.0 is the only profile/level combo that clears
+      // every known third-party decoder quirk. See AIRPIN.md.
+      format.setInteger(
+          MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline);
+      format.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel4);
+    }
+    return format;
+  }
+
+  private static void release(MediaCodec mc) {
+    if (mc == null) {
+      return;
+    }
+    try {
+      mc.stop();
+    } catch (Exception ignored) {
+    }
+    try {
+      mc.release();
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void releaseCodec() {
+    release(codec);
+    codec = null;
+  }
+
+  private void releaseDisplay() {
+    if (virtualDisplay != null) {
+      try {
+        virtualDisplay.release();
+      } catch (Exception ignored) {
+      }
+      virtualDisplay = null;
     }
   }
 
