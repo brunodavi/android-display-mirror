@@ -1,5 +1,8 @@
 package io.github.jqssun.displaymirror;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -49,7 +52,29 @@ public class LogsFragment extends Fragment {
 
               @Override
               public boolean onMenuItemSelected(@NonNull MenuItem item) {
-                if (item.getItemId() == R.id.action_export) {
+                if (item.getItemId() == R.id.action_copy) {
+                  if (State.logs.isEmpty()) {
+                    Toast.makeText(
+                            requireContext(), R.string.no_logs_to_copy, Toast.LENGTH_SHORT)
+                        .show();
+                    return true;
+                  }
+                  StringBuilder text = new StringBuilder();
+                  synchronized (State.logs) {
+                    for (String line : State.logs) {
+                      text.append(line).append('\n');
+                    }
+                  }
+                  ClipboardManager clipboard =
+                      (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                  if (clipboard != null) {
+                    clipboard.setPrimaryClip(
+                        ClipData.newPlainText(getString(R.string.tab_logs), text.toString()));
+                    Toast.makeText(requireContext(), R.string.logs_copied, Toast.LENGTH_SHORT)
+                        .show();
+                  }
+                  return true;
+                } else if (item.getItemId() == R.id.action_export) {
                   if (!ShizukuUtils.hasPermission()) {
                     Toast.makeText(
                             requireContext(), R.string.export_log_needs_shizuku, Toast.LENGTH_SHORT)
