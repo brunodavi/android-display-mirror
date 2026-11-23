@@ -1,24 +1,20 @@
 name: Generate APK
 
-env:
-  main_project_module: app
-
 on:
   push:
     branches:
-      - "release/**"
-    tags:
-      - "v*.*.*"
-
+      - main
   workflow_dispatch:
-    inputs:
-      version:
-        description: "v*.*.*"
-        required: true
-        type: string
 
 permissions:
   contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.25.10"
 
 jobs:
   build:
@@ -29,20 +25,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set TAG
+      - name: Set build info
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            VERSION="${GITHUB_REF_NAME}"
-          else
-            VERSION="${{ inputs.version }}"
-          fi
-
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version: $VERSION"
-            exit 1
-          fi
-
-          echo "version=${VERSION#v}" >> "$GITHUB_ENV"
+          echo "ndk_version=$(awk -F '"' '/ndkVersion/ {print $2}' app/build.gradle)" >> "$GITHUB_ENV"
+          echo "sdk_dir=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "version=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle)" >> "$GITHUB_ENV"
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
       - name: Use JDK
         uses: actions/setup-java@v4
@@ -54,57 +42,55 @@ jobs:
       - name: Use Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25.10"
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: doubletake/doubletake/go.sum
+
+      # NDK side-by-side (~35s de download/instalação por build)
+      - name: Cache NDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.sdk_dir }}/ndk/${{ env.ndk_version }}
+          key: ndk-${{ env.ndk_version }}-${{ runner.os }}
+
+      # AAR do doubletake/gomobile (~1m20s); só roda build.sh se não houver cache
+      - name: Cache airplaylib.aar
+        uses: actions/cache@v4
+        with:
+          path: app/libs/airplaylib.aar
+          key: airplaylib-go${{ env.GO_VERSION }}-${{ hashFiles('build.sh', 'doubletake/**', 'app/build.gradle') }}
+
+      # build nativo CMake/Sunshine (~6min nos 3 ABIs); ninja reusa os objetos
+      - name: Cache native build
+        uses: actions/cache@v4
+        with:
+          path: app/.cxx
+          key: cxx-debug-ndk${{ env.ndk_version }}-${{ hashFiles('app/src/main/cpp/**', 'app/build.gradle', 'gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Build
         run: |
           export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
-
-          echo "${{ secrets.STORE }}" | base64 -d > upload.jks
-          echo "${{ secrets.LOCAL }}" | base64 -d > local.properties
-
           chmod +x ./build.sh ./gradlew
 
-          ./build.sh
-          ./gradlew assembleRelease bundleRelease --stacktrace
-
-          rm -f upload.jks local.properties
-
-      - name: Check build outputs
-        run: |
-          OUTPUT_DIR="${{ env.main_project_module }}/build/outputs"
-
-          echo "Searching for APK and AAB files..."
-
-          APK=$(find "$OUTPUT_DIR/apk" -type f -name "*.apk" | head -n 1)
-          AAB=$(find "$OUTPUT_DIR/bundle" -type f -name "*.aab" | head -n 1)
-
-          if [[ -z "$APK" ]]; then
-            echo "ERROR: No APK found."
-            echo "Available files:"
-            find "$OUTPUT_DIR" -type f
-            exit 1
+          if [ -f app/libs/airplaylib.aar ]; then
+            echo "airplaylib.aar restored from cache, skipping build.sh"
+          else
+            ./build.sh
           fi
 
-          if [[ -z "$AAB" ]]; then
-            echo "ERROR: No AAB found."
-            echo "Available files:"
-            find "$OUTPUT_DIR" -type f
-            exit 1
-          fi
+          # debug já sai assinado com a chave debug do próprio build (instalável)
+          ./gradlew assembleDebug --stacktrace
 
-          echo "APK found: $APK"
-          echo "AAB found: $AAB"
-
-          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
-          echo "AAB_PATH=$AAB" >> "$GITHUB_ENV"
-
+      # release fixa: os assets são substituídos a cada build (mesmo nome de arquivo)
       - name: Publish (GitHub)
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          name: v${{ env.version }}
-          tag_name: v${{ env.version }}
-          files: |
-            ${{ env.APK_PATH }}
-            ${{ env.AAB_PATH }}
+          tag_name: test-build
+          name: "Test build (v${{ env.version }})"
+          prerelease: true
+          make_latest: false
+          body: |
+            APK de teste (debug) — atualizado a cada build em main.
+            Commit: ${{ env.short_sha }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          files: app/build/outputs/apk/debug/app-debug.apk
