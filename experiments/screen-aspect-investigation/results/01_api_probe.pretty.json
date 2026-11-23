@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "WRITE_SECURE_SETTINGS": "DENIED",
+    "MANAGE_DISPLAYS": "DENIED",
+    "MODIFY_USER_PREFERRED_DISPLAY_MODE": "DENIED",
+    "ADD_TRUSTED_DISPLAY": "DENIED",
+    "CAPTURE_VIDEO_OUTPUT": "DENIED"
+  },
+  "reflection": {
+    "WindowManager.setForcedDisplaySize": "java.lang.NoSuchMethodException: android.view.WindowManager.setForcedDisplaySize [int, int, int]",
+    "IWindowManager.setForcedDisplaySize": "java.lang.NoSuchMethodException: android.view.IWindowManager.setForcedDisplaySize [int, int, int]",
+    "DisplayManager.methods": "getStableDisplaySize",
+    "Display.methods": "getCurrentSizeRange,getMaximumSizeDimension,getMode,getRealSize,getRectSize,getSize,getSupportedModes"
+  },
+  "settings": {
+    "display_size_forced": "",
+    "display_density_forced": "450"
+  },
+  "display": {
+    "real": "1080x2400",
+    "app": "1080x2308",
+    "density": 2.8125,
+    "rotation": 0
+  }
+}

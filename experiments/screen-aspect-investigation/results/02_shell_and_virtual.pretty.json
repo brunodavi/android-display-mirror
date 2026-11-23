@@ -1,0 +1,12 @@
+{
+  "shell": {
+    "wm_size": "ERR:cmd: Can't find service: window",
+    "wm_density": "ERR:cmd: Can't find service: window"
+  },
+  "virtualDisplay": {
+    "ok": true,
+    "displayId": 36,
+    "width": 1280,
+    "height": 720
+  }
+}

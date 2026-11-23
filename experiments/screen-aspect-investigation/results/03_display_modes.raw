@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-Type: text/plain; charset=UTF-8
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: *
+Access-Control-Allow-Headers: *
+Content-Length: 386
+
+{"modes":[{"id":1,"w":1080,"h":2400,"fps":60.000004}],"current":{"id":1,"w":1080,"h":2400,"fps":60.000004},"secureKeys":["display_density_forced=450","accessibility_display_daltonizer_enabled=0","accessibility_display_magnification_scale=2.0","backup_encryption_opt_in_displayed=1","accessibility_display_magnification_enabled=0","accessibility_display_magnification_navbar_enabled=0"]}

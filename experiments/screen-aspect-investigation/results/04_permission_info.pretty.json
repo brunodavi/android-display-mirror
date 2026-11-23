@@ -1,0 +1,8 @@
+{
+  "android.permission.WRITE_SECURE_SETTINGS": "EXISTS",
+  "android.permission.MANAGE_DISPLAYS": "MISSING:NameNotFoundException",
+  "android.permission.MODIFY_USER_PREFERRED_DISPLAY_MODE": "EXISTS",
+  "android.permission.ADD_TRUSTED_DISPLAY": "EXISTS",
+  "android.permission.CAPTURE_VIDEO_OUTPUT": "EXISTS",
+  "android.permission.CAPTURE_SECURE_VIDEO_OUTPUT": "EXISTS"
+}

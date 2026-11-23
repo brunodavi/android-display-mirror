@@ -1,0 +1,66 @@
+// Read-only: supported display modes and secure-setting keys related to screen size.
+
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.Settings;
+import android.view.Display;
+import android.view.WindowManager;
+
+String j(String s) {
+  if (s == null) return "";
+  StringBuilder o = new StringBuilder();
+  for (int i = 0; i < s.length(); i++) {
+    char c = s.charAt(i);
+    if (c == '"') o.append("\\\"");
+    else if (c == '\\') o.append("\\\\");
+    else if (c == '\n') o.append("\\n");
+    else o.append(c);
+  }
+  return o.toString();
+}
+
+StringBuilder sb = new StringBuilder();
+WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+Display d = wm.getDefaultDisplay();
+sb.append("{\"modes\":[");
+Display.Mode[] modes = d.getSupportedModes();
+for (int i = 0; i < modes.length; i++) {
+  if (i > 0) sb.append(",");
+  sb.append("{\"id\":").append(modes[i].getModeId());
+  sb.append(",\"w\":").append(modes[i].getPhysicalWidth());
+  sb.append(",\"h\":").append(modes[i].getPhysicalHeight());
+  sb.append(",\"fps\":").append(modes[i].getRefreshRate()).append("}");
+}
+sb.append("],\"current\":{");
+sb.append("\"id\":").append(d.getMode().getModeId());
+sb.append(",\"w\":").append(d.getMode().getPhysicalWidth());
+sb.append(",\"h\":").append(d.getMode().getPhysicalHeight());
+sb.append(",\"fps\":").append(d.getMode().getRefreshRate());
+sb.append("},\"secureKeys\":[");
+
+Cursor c = null;
+try {
+  Uri uri = Settings.Secure.CONTENT_URI;
+  c = context.getContentResolver().query(uri, null, null, null, null);
+  if (c != null && c.moveToFirst()) {
+    int ni = c.getColumnIndex("name");
+    int vi = c.getColumnIndex("value");
+    boolean first = true;
+    do {
+      String name = c.getString(ni);
+      String lo = name == null ? "" : name.toLowerCase();
+      if (lo.indexOf("display") >= 0 || lo.indexOf("resolution") >= 0 || lo.indexOf("aspect") >= 0 || lo.indexOf("density") >= 0 || lo.indexOf("size") >= 0) {
+        if (!first) sb.append(",");
+        first = false;
+        sb.append("\"").append(j(name)).append("=").append(j(c.getString(vi))).append("\"");
+      }
+    } while (c.moveToNext());
+  }
+} catch (Throwable e) {
+  sb.append("ERR:").append(j(e.getClass().getName() + ": " + e.getMessage()));
+} finally {
+  if (c != null) { try { c.close(); } catch (Throwable ignored) {} }
+}
+sb.append("]}");
+return sb.toString();

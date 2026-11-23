@@ -1,0 +1,97 @@
+// Non-mutating probe: can a normal app change the physical display size/aspect?
+// Tasker Java Code, BeanShell compatible.
+
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.hardware.display.DisplayManager;
+import android.provider.Settings;
+import android.util.DisplayMetrics;
+import android.view.Display;
+import android.view.WindowManager;
+import java.lang.reflect.Method;
+
+String j(String s) {
+  if (s == null) return "";
+  StringBuilder o = new StringBuilder();
+  for (int i = 0; i < s.length(); i++) {
+    char c = s.charAt(i);
+    if (c == '"') o.append("\\\"");
+    else if (c == '\\') o.append("\\\\");
+    else if (c == '\n') o.append("\\n");
+    else o.append(c);
+  }
+  return o.toString();
+}
+
+String perm(String name) {
+  int r = context.checkCallingOrSelfPermission(name);
+  return r == PackageManager.PERMISSION_GRANTED ? "GRANTED" : "DENIED";
+}
+
+String methodsWith(Class c, String[] words) {
+  StringBuilder out = new StringBuilder();
+  try {
+    Method[] ms = c.getDeclaredMethods();
+    for (int i = 0; i < ms.length; i++) {
+      String n = ms[i].getName();
+      for (int w = 0; w < words.length; w++) {
+        if (n.toLowerCase().indexOf(words[w]) >= 0) {
+          if (out.length() > 0) out.append(",");
+          out.append(n);
+          break;
+        }
+      }
+    }
+  } catch (Throwable e) {
+    out.append("ERR:").append(e.getClass().getName());
+  }
+  return out.length() == 0 ? "none" : out.toString();
+}
+
+StringBuilder sb = new StringBuilder();
+sb.append("{\"permissions\":{");
+sb.append("\"WRITE_SECURE_SETTINGS\":\"").append(perm("android.permission.WRITE_SECURE_SETTINGS")).append("\"");
+sb.append(",\"MANAGE_DISPLAYS\":\"").append(perm("android.permission.MANAGE_DISPLAYS")).append("\"");
+sb.append(",\"MODIFY_USER_PREFERRED_DISPLAY_MODE\":\"").append(perm("android.permission.MODIFY_USER_PREFERRED_DISPLAY_MODE")).append("\"");
+sb.append(",\"ADD_TRUSTED_DISPLAY\":\"").append(perm("android.permission.ADD_TRUSTED_DISPLAY")).append("\"");
+sb.append(",\"CAPTURE_VIDEO_OUTPUT\":\"").append(perm("android.permission.CAPTURE_VIDEO_OUTPUT")).append("\"");
+sb.append("},\"reflection\":{");
+
+try {
+  Method m = WindowManager.class.getDeclaredMethod("setForcedDisplaySize", int.class, int.class, int.class);
+  sb.append("\"WindowManager.setForcedDisplaySize\":\"FOUND\"");
+} catch (Throwable e) {
+  sb.append("\"WindowManager.setForcedDisplaySize\":\"").append(j(e.getClass().getName() + ": " + e.getMessage())).append("\"");
+}
+try {
+  Class iwm = Class.forName("android.view.IWindowManager");
+  Method m = iwm.getDeclaredMethod("setForcedDisplaySize", int.class, int.class, int.class);
+  sb.append(",\"IWindowManager.setForcedDisplaySize\":\"FOUND\"");
+} catch (Throwable e) {
+  sb.append(",\"IWindowManager.setForcedDisplaySize\":\"").append(j(e.getClass().getName() + ": " + e.getMessage())).append("\"");
+}
+String[] words = new String[] {"size", "aspect", "forced", "mode"};
+sb.append(",\"DisplayManager.methods\":\"").append(j(methodsWith(DisplayManager.class, words))).append("\"");
+sb.append(",\"Display.methods\":\"").append(j(methodsWith(Display.class, words))).append("\"");
+sb.append("},\"settings\":{");
+try {
+  sb.append("\"display_size_forced\":\"").append(j(Settings.Secure.getString(context.getContentResolver(), "display_size_forced"))).append("\"");
+} catch (Throwable e) {
+  sb.append("\"display_size_forced\":\"ERR ").append(j(e.getClass().getName())).append("\"");
+}
+try {
+  sb.append(",\"display_density_forced\":\"").append(j(Settings.Secure.getString(context.getContentResolver(), "display_density_forced"))).append("\"");
+} catch (Throwable e) {
+  sb.append(",\"display_density_forced\":\"ERR ").append(j(e.getClass().getName())).append("\"");
+}
+sb.append("},\"display\":{");
+WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+DisplayMetrics real = new DisplayMetrics();
+wm.getDefaultDisplay().getRealMetrics(real);
+sb.append("\"real\":\"").append(real.widthPixels).append("x").append(real.heightPixels).append("\"");
+DisplayMetrics app = context.getResources().getDisplayMetrics();
+sb.append(",\"app\":\"").append(app.widthPixels).append("x").append(app.heightPixels).append("\"");
+sb.append(",\"density\":").append(app.density);
+sb.append(",\"rotation\":").append(wm.getDefaultDisplay().getRotation());
+sb.append("}}");
+return sb.toString();

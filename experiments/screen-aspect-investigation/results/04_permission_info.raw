@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-Type: text/plain; charset=UTF-8
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: *
+Access-Control-Allow-Headers: *
+Content-Length: 346
+
+{"android.permission.WRITE_SECURE_SETTINGS":"EXISTS","android.permission.MANAGE_DISPLAYS":"MISSING:NameNotFoundException","android.permission.MODIFY_USER_PREFERRED_DISPLAY_MODE":"EXISTS","android.permission.ADD_TRUSTED_DISPLAY":"EXISTS","android.permission.CAPTURE_VIDEO_OUTPUT":"EXISTS","android.permission.CAPTURE_SECURE_VIDEO_OUTPUT":"EXISTS"}

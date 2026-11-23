@@ -1,0 +1,75 @@
+// Read-only shell command + temporary virtual display probe.
+// The virtual display is released immediately; the physical screen is untouched.
+
+import android.content.Context;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
+import android.view.Display;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+String j(String s) {
+  if (s == null) return "";
+  StringBuilder o = new StringBuilder();
+  for (int i = 0; i < s.length(); i++) {
+    char c = s.charAt(i);
+    if (c == '"') o.append("\\\"");
+    else if (c == '\\') o.append("\\\\");
+    else if (c == '\n') o.append("\\n");
+    else if (c == '\r') o.append("\\r");
+    else o.append(c);
+  }
+  return o.toString();
+}
+
+String runCmd(String[] cmd) {
+  StringBuilder out = new StringBuilder();
+  try {
+    Process p = Runtime.getRuntime().exec(cmd);
+    BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+    String line;
+    while ((line = r.readLine()) != null) {
+      if (out.length() > 0) out.append(" | ");
+      out.append(line);
+    }
+    BufferedReader e = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+    while ((line = e.readLine()) != null) {
+      if (out.length() > 0) out.append(" | ");
+      out.append("ERR:").append(line);
+    }
+    p.waitFor();
+  } catch (Throwable t) {
+    out.append("EXC:").append(t.getClass().getName()).append(":").append(t.getMessage());
+  }
+  return out.toString();
+}
+
+StringBuilder sb = new StringBuilder();
+sb.append("{\"shell\":{");
+sb.append("\"wm_size\":\"").append(j(runCmd(new String[] {"wm", "size"}))).append("\"");
+sb.append(",\"wm_density\":\"").append(j(runCmd(new String[] {"wm", "density"}))).append("\"");
+sb.append("},\"virtualDisplay\":{");
+
+VirtualDisplay vd = null;
+try {
+  DisplayManager dm = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+  vd =
+      dm.createVirtualDisplay(
+          "AspectProbe",
+          1280,
+          720,
+          160,
+          null,
+          DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY);
+  Display d = vd.getDisplay();
+  sb.append("\"ok\":true,\"displayId\":").append(d.getDisplayId());
+  sb.append(",\"width\":").append(d.getWidth()).append(",\"height\":").append(d.getHeight());
+} catch (Throwable e) {
+  sb.append("\"ok\":false,\"error\":\"").append(j(e.getClass().getName() + ": " + e.getMessage())).append("\"");
+} finally {
+  if (vd != null) {
+    try { vd.release(); } catch (Throwable ignored) {}
+  }
+}
+sb.append("}}");
+return sb.toString();

@@ -1,0 +1,33 @@
+// Check which display-related permissions actually exist on this device.
+
+import android.content.pm.PackageManager;
+
+String j(String s) {
+  if (s == null) return "";
+  return s.replace("\\", "\\\\").replace("\"", "\\\"");
+}
+
+String[] names = new String[] {
+  "android.permission.WRITE_SECURE_SETTINGS",
+  "android.permission.MANAGE_DISPLAYS",
+  "android.permission.MODIFY_USER_PREFERRED_DISPLAY_MODE",
+  "android.permission.ADD_TRUSTED_DISPLAY",
+  "android.permission.CAPTURE_VIDEO_OUTPUT",
+  "android.permission.CAPTURE_SECURE_VIDEO_OUTPUT"
+};
+
+StringBuilder sb = new StringBuilder();
+sb.append("{");
+for (int i = 0; i < names.length; i++) {
+  if (i > 0) sb.append(",");
+  String v;
+  try {
+    context.getPackageManager().getPermissionInfo(names[i], 0);
+    v = "EXISTS";
+  } catch (Throwable e) {
+    v = "MISSING:" + e.getClass().getSimpleName();
+  }
+  sb.append("\"").append(j(names[i])).append("\":\"").append(j(v)).append("\"");
+}
+sb.append("}");
+return sb.toString();
