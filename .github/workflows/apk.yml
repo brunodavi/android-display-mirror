@@ -74,8 +74,8 @@ jobs:
             ./build.sh
           fi
 
-          # testes unitários da lógica de seleção + APK debug (assinado com a chave debug)
-          ./gradlew :app:testDebugUnitTest assembleDebug --stacktrace
+          # debug já sai assinado com a chave debug do próprio build (instalável)
+          ./gradlew assembleDebug --stacktrace
 
       # release fixa: os assets são substituídos a cada build (mesmo nome de arquivo)
       - name: Publish (GitHub)

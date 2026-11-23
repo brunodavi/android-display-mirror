@@ -269,12 +269,6 @@ public class AirPlayService {
     int height = session != null ? (int) session.streamHeight() : 0;
     encoder = new AirPlayEncoder();
     encoder.start(width, height, pendingFps);
-    if (!encoder.isRunning()) {
-      // video never started: tear the session down instead of streaming audio into a dead session
-      State.log("AirPlay: encoder unavailable, disconnecting");
-      disconnect();
-      return;
-    }
     if (session != null && encoder.screenWidth > 0 && encoder.screenHeight > 0) {
       session.setAirPlay1FrameSize(encoder.screenWidth, encoder.screenHeight);
     }
