@@ -231,14 +231,34 @@ public class AirPlayEncoder {
     return format;
   }
 
-  // Default codec first, then other Surface-capable AVC encoders (hardware before software).
-  private static List<String> _encoderNames() {
-    List<String> names = new ArrayList<String>();
+  public static class EncoderInfo {
+    public final String name;
+    public final boolean hardware;
+    public final boolean isDefault;
+
+    EncoderInfo(String name, boolean hardware, boolean isDefault) {
+      this.name = name;
+      this.hardware = hardware;
+      this.isDefault = isDefault;
+    }
+
+    @Override
+    public String toString() {
+      return name
+          + " ["
+          + (hardware ? "hardware" : "software")
+          + (isDefault ? ", default" : "")
+          + "]";
+    }
+  }
+
+  // Surface-capable AVC encoders. Default codec first, hardware before software.
+  public static List<EncoderInfo> availableEncoders() {
+    String defaultName = null;
     MediaCodec probe = null;
     try {
       probe = MediaCodec.createEncoderByType(MIME);
-      String defaultName = probe.getName();
-      if (defaultName != null) names.add(defaultName);
+      defaultName = probe.getName();
     } catch (Exception e) {
       Log.w(TAG, "default AVC encoder unavailable: " + _describe(e));
     } finally {
@@ -250,8 +270,8 @@ public class AirPlayEncoder {
       }
     }
 
-    List<String> hardware = new ArrayList<String>();
-    List<String> software = new ArrayList<String>();
+    List<EncoderInfo> hardware = new ArrayList<EncoderInfo>();
+    List<EncoderInfo> software = new ArrayList<EncoderInfo>();
     try {
       MediaCodecList list = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
       MediaCodecInfo[] infos = list.getCodecInfos();
@@ -267,7 +287,6 @@ public class AirPlayEncoder {
           }
         }
         if (!avc || !_hasSurfaceInput(info)) continue;
-        String name = info.getName();
         boolean hw = true;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
           try {
@@ -275,14 +294,58 @@ public class AirPlayEncoder {
           } catch (Exception ignored) {
           }
         }
-        List<String> target = hw ? hardware : software;
-        if (!target.contains(name) && !names.contains(name)) target.add(name);
+        EncoderInfo item = new EncoderInfo(info.getName(), hw, false);
+        if (!_containsName(hardware, item.name) && !_containsName(software, item.name)) {
+          (hw ? hardware : software).add(item);
+        }
       }
     } catch (Exception e) {
       Log.w(TAG, "encoder discovery failed: " + _describe(e));
     }
-    names.addAll(hardware);
-    names.addAll(software);
+
+    List<EncoderInfo> result = new ArrayList<EncoderInfo>();
+    if (defaultName != null) {
+      EncoderInfo defaultItem = _take(hardware, defaultName);
+      if (defaultItem == null) defaultItem = _take(software, defaultName);
+      if (defaultItem != null) {
+        result.add(new EncoderInfo(defaultItem.name, defaultItem.hardware, true));
+      } else {
+        result.add(new EncoderInfo(defaultName, true, true));
+      }
+    }
+    result.addAll(hardware);
+    result.addAll(software);
+    return result;
+  }
+
+  private static boolean _containsName(List<EncoderInfo> list, String name) {
+    for (int i = 0; i < list.size(); i++) {
+      if (name.equals(list.get(i).name)) return true;
+    }
+    return false;
+  }
+
+  private static EncoderInfo _take(List<EncoderInfo> list, String name) {
+    for (int i = 0; i < list.size(); i++) {
+      if (name.equals(list.get(i).name)) return list.remove(i);
+    }
+    return null;
+  }
+
+  // A manual selection disables the automatic fallback chain on purpose.
+  private static List<String> _encoderNames() {
+    String selected = Pref.getAirPlayEncoder();
+    if (selected != null && selected.length() > 0) {
+      List<String> only = new ArrayList<String>();
+      only.add(selected);
+      State.log("AirPlay encoder: manual selection " + selected + " (automatic fallback disabled)");
+      return only;
+    }
+    List<EncoderInfo> infos = availableEncoders();
+    List<String> names = new ArrayList<String>();
+    for (int i = 0; i < infos.size(); i++) {
+      names.add(infos.get(i).name);
+    }
     return names;
   }
 

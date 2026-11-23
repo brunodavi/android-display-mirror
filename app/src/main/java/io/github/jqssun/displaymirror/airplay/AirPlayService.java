@@ -265,8 +265,24 @@ public class AirPlayService {
   }
 
   private void _startEncoder() {
-    int width = session != null ? (int) session.streamWidth() : 0;
-    int height = session != null ? (int) session.streamHeight() : 0;
+    String selectedEncoder = Pref.getAirPlayEncoder();
+    boolean manualEncoder = selectedEncoder != null && selectedEncoder.length() > 0;
+    int width =
+        manualEncoder || pendingWidth <= 0
+            ? pendingWidth
+            : (session != null ? (int) session.streamWidth() : 0);
+    int height =
+        manualEncoder || pendingHeight <= 0
+            ? pendingHeight
+            : (session != null ? (int) session.streamHeight() : 0);
+    State.log(
+        "AirPlay: encoder input "
+            + width
+            + "x"
+            + height
+            + "@"
+            + pendingFps
+            + (manualEncoder ? " (configured output, encoder=" + selectedEncoder + ")" : " (receiver display)"));
     encoder = new AirPlayEncoder();
     encoder.start(width, height, pendingFps);
     if (session != null && encoder.screenWidth > 0 && encoder.screenHeight > 0) {

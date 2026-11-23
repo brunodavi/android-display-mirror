@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -20,13 +21,16 @@ import io.github.jqssun.displaymirror.R;
 import io.github.jqssun.displaymirror.State;
 import io.github.jqssun.displaymirror.dialog.PinDialog;
 import io.github.jqssun.displaymirror.dialog.ResolutionSettingsDialog;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AirPlayFragment extends Fragment {
   private TextView statusTitle, statusDetail;
   private ImageView statusIcon;
   private Spinner deviceSpinner;
-  private MaterialButton scanBtn, connectBtn, manageDisplayBtn;
+  private Spinner encoderSpinner;
+  private TextView encoderText;
+  private MaterialButton scanBtn, connectBtn, manageDisplayBtn, detectEncodersBtn;
   private LinearLayout manualLayout;
   private TextInputEditText manualIp, manualPort;
   private AirPlayService.AirPlayDevice _pendingDevice;
@@ -54,6 +58,9 @@ public class AirPlayFragment extends Fragment {
     deviceSpinner = view.findViewById(R.id.airplay_device_spinner);
     connectBtn = view.findViewById(R.id.airplay_connect_btn);
     manageDisplayBtn = view.findViewById(R.id.manage_display_btn);
+    detectEncodersBtn = view.findViewById(R.id.airplay_detect_encoders_btn);
+    encoderSpinner = view.findViewById(R.id.airplay_encoder_spinner);
+    encoderText = view.findViewById(R.id.airplay_encoder_text);
 
     manualLayout = view.findViewById(R.id.airplay_manual_layout);
     manualIp = view.findViewById(R.id.airplay_manual_ip);
@@ -69,6 +76,8 @@ public class AirPlayFragment extends Fragment {
           Pref.getPreferences().edit().putBoolean(Pref.KEY_AIRPLAY1_MODE, c).apply();
           airplaylib.Airplaylib.setAirPlay1Mode(c);
         });
+    _updateEncoderText();
+    detectEncodersBtn.setOnClickListener(v -> _detectEncoders());
     manageDisplayBtn.setOnClickListener(
         v ->
             ((MainActivity) requireActivity())
@@ -235,6 +244,83 @@ public class AirPlayFragment extends Fragment {
     _updateManageDisplayButton();
 
     return view;
+  }
+
+  private static class EncoderOption {
+    final String name;
+    final String label;
+
+    EncoderOption(String name, String label) {
+      this.name = name;
+      this.label = label;
+    }
+
+    @Override
+    public String toString() {
+      return label;
+    }
+  }
+
+  private void _detectEncoders() {
+    List<AirPlayEncoder.EncoderInfo> found = AirPlayEncoder.availableEncoders();
+    String saved = Pref.getAirPlayEncoder();
+    List<EncoderOption> options = new ArrayList<EncoderOption>();
+    options.add(new EncoderOption("", getString(R.string.airplay_encoder_auto)));
+    boolean savedFound = saved == null || saved.length() == 0;
+    for (int i = 0; i < found.size(); i++) {
+      AirPlayEncoder.EncoderInfo info = found.get(i);
+      options.add(new EncoderOption(info.name, info.toString()));
+      if (info.name.equals(saved)) savedFound = true;
+    }
+    if (!savedFound) {
+      options.add(new EncoderOption(saved, saved + " [saved]"));
+    }
+
+    ArrayAdapter<EncoderOption> adapter =
+        new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, options);
+    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    encoderSpinner.setAdapter(adapter);
+    int selectedIndex = 0;
+    for (int i = 0; i < options.size(); i++) {
+      if (options.get(i).name.equals(saved)) {
+        selectedIndex = i;
+        break;
+      }
+    }
+    encoderSpinner.setSelection(selectedIndex, false);
+    encoderSpinner.setOnItemSelectedListener(
+        new AdapterView.OnItemSelectedListener() {
+          @Override
+          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            EncoderOption option = (EncoderOption) parent.getItemAtPosition(position);
+            Pref.getPreferences()
+                .edit()
+                .putString(Pref.KEY_AIRPLAY_ENCODER, option.name)
+                .apply();
+            _updateEncoderText();
+          }
+
+          @Override
+          public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    encoderSpinner.setVisibility(View.VISIBLE);
+    Toast.makeText(
+            requireContext(),
+            found.isEmpty()
+                ? getString(R.string.airplay_encoder_none)
+                : getString(R.string.airplay_encoder_found, found.size()),
+            Toast.LENGTH_SHORT)
+        .show();
+  }
+
+  private void _updateEncoderText() {
+    if (encoderText == null) return;
+    String selected = Pref.getAirPlayEncoder();
+    String label =
+        selected == null || selected.length() == 0
+            ? getString(R.string.airplay_encoder_auto)
+            : selected;
+    encoderText.setText(getString(R.string.airplay_encoder_current, label));
   }
 
   private void _updateDeviceList() {

@@ -36,6 +36,7 @@ public class Pref {
   public static final String KEY_AIRPLAY_WIDTH = "airplay_width";
   public static final String KEY_AIRPLAY_HEIGHT = "airplay_height";
   public static final String KEY_AIRPLAY_REFRESH_RATE = "airplay_refresh_rate";
+  public static final String KEY_AIRPLAY_ENCODER = "airplay_encoder";
 
   // displaylink
   public static final String KEY_DISPLAYLINK_WIDTH = "displaylink_width";
@@ -149,6 +150,11 @@ public class Pref {
 
   public static int getAirPlayRefreshRate() {
     return getInt(KEY_AIRPLAY_REFRESH_RATE, 30);
+  }
+
+  // empty means automatic encoder selection
+  public static String getAirPlayEncoder() {
+    return getString(KEY_AIRPLAY_ENCODER, "");
   }
 
   public static int getDisplaylinkWidth() {

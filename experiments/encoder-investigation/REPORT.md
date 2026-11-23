@@ -152,6 +152,21 @@ A correção anterior que foi revertida não foi reaplicada: esta versão não d
 - `app/src/main/java/io/github/jqssun/displaymirror/airplay/AirPlayEncoder.java`
 - `experiments/encoder-investigation/` (scripts, resultados e este relatório)
 
+## Seleção manual de encoder e resolução configurada
+
+Implementado a pedido, sem alterar o caminho automático:
+
+- Novo botão **Detect encoders** na tela AirPlay, abaixo de *Support for legacy 3rd party receivers*.
+- O botão consulta `MediaCodecList`, filtra encoders AVC com `COLOR_FormatSurface` e
+exibe um `Spinner` com nomes e classificação hardware/software. A primeira opção é
+**Automatic**, que preserva o fallback anterior.
+- A seleção é salva em `Pref.KEY_AIRPLAY_ENCODER`. Quando um encoder específico é
+selecionado, a cadeia automática de fallback é desligada; apenas aquele encoder é
+tentado (com o retry sem `low-latency`, que corrige o M62).
+- Com encoder manual selecionado, `AirPlayService._startEncoder()` usa largura, altura
+e FPS definidos em **Change AirPlay Output Settings**, em vez da resolução negociada
+pelo receptor. No modo automático, continua usando a resolução negociada.
+
 ## Validação
 
 Validado no M62 via Tasker:
@@ -163,8 +178,9 @@ Validado no M62 via Tasker:
 
 Ainda pendente:
 
-- CI gerar o APK com a correção.
-- Teste real de espelhamento AirPlay no M62.
-- Teste real de espelhamento no J7 Pro para confirmar que o caminho original permanece intacto.
+- CI gerar o APK com estas alterações.
+- Teste real de espelhamento AirPlay no M62, incluindo encoder selecionado manualmente.
+- Confirmar se o receptor aceita 1920x1080@30 quando a resolução é forçada pela opção manual.
+- Teste real de espelhamento no J7 Pro para confirmar que o caminho automático permanece intacto.
 
 Não afirmo que o problema de espelhamento está resolvido até esses testes manuais.

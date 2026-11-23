@@ -149,6 +149,13 @@
     <string name="section_airplay">AirPlay Settings</string>
     <string name="airplay1_mode">Support for legacy 3rd party receivers</string>
     <string name="airplay1_mode_desc">Enable only when used with legacy receivers including Anker Nebula Cast (AirPin) which do not have modern AirPlay support.</string>
+    <string name="airplay_encoder_title">Video encoder</string>
+    <string name="airplay_encoder_desc">Detect and select a specific encoder, or keep automatic selection.</string>
+    <string name="airplay_detect_encoders">Detect encoders</string>
+    <string name="airplay_encoder_auto">Automatic</string>
+    <string name="airplay_encoder_current">Selected encoder: %1$s</string>
+    <string name="airplay_encoder_found">%1$d encoder(s) found</string>
+    <string name="airplay_encoder_none">No compatible AVC encoders found</string>
     <string name="about_airplay_notice">This app is not affiliated with Apple.</string>
     <string name="airplay_discover">Scan for AirPlay receivers</string>
     <string name="airplay_no_devices">AirPlay receiver not connected</string>
@@ -169,7 +176,7 @@
     <string name="change_airplay_output_settings">Change AirPlay Output Settings</string>
     <string name="airplay_resolution_title">AirPlay Output Settings</string>
     <string name="airplay_output_format">Current AirPlay Output: %1$dx%2$d@%3$dHz</string>
-    <string name="airplay_resolution_explanation">This controls the default output format advertised to the AirPlay receiver when connecting. The receiver may negotiate a different stream resolution.</string>
+    <string name="airplay_resolution_explanation">This controls the default output format advertised to the AirPlay receiver when connecting. With a manually selected encoder, this resolution and FPS are used for the stream.</string>
     <string name="quick_presets">Custom</string>
     <string name="manual_input">Manual input</string>
     <string name="manual_input_client_title">Manual input client</string>
