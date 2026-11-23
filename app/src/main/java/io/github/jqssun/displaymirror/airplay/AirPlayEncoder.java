@@ -99,7 +99,8 @@ public class AirPlayEncoder {
 
       boolean rotate = Pref.getRotateWithContent();
       boolean crop = Pref.getCropBlackBorders();
-      if (CreateVirtualDisplay.streamMirrors() && (rotate || crop)) {
+      boolean manualCrop = Pref.getManualCropEnabled();
+      if (CreateVirtualDisplay.streamMirrors() && (rotate || crop || manualCrop)) {
         pipeline =
             new StreamRenderer(
                 new VirtualDisplayArgs("AirPlay", screenWidth, screenHeight, fps, screenDpi, false),
@@ -120,6 +121,11 @@ public class AirPlayEncoder {
               }
               return virtualDisplay;
             });
+        if (manualCrop) {
+          int[] values = Pref.getManualCrop();
+          pipeline.setManualCrop(
+              values[0], values[1], values[2], values[3], values[4], values[5]);
+        }
       } else {
         virtualDisplay =
             CreateVirtualDisplay.createForStream(
@@ -133,6 +139,9 @@ public class AirPlayEncoder {
           return;
         }
         AirPlayState.setTouchTarget(virtualDisplay.getDisplay().getDisplayId(), inputSurface);
+        if (manualCrop) {
+          State.log("AirPlay crop: manual settings ignored, stream renderer is not active");
+        }
       }
 
       encodeThread = new Thread(this::_encodeLoop, "AirPlayEncode");
@@ -150,11 +159,31 @@ public class AirPlayEncoder {
               + chosenEncoder
               + (chosenLowLatency ? "" : " (low-latency disabled)"));
       State.log("AirPlay encoder format: " + chosenFormat);
+      State.log(
+          "AirPlay crop: rotate="
+              + rotate
+              + " auto="
+              + crop
+              + " manual="
+              + manualCrop
+              + (manualCrop ? " " + java.util.Arrays.toString(Pref.getManualCrop()) : ""));
     } catch (Exception e) {
       Log.e(TAG, "start failed", e);
       State.log("AirPlay encoder failed: " + _describe(e));
       AirPlayState.clearTouchTarget();
       stop();
+    }
+  }
+
+  public void applyManualCrop(int left, int top, int right, int bottom, int zoomX, int zoomY) {
+    if (pipeline != null) {
+      pipeline.setManualCrop(left, top, right, bottom, zoomX, zoomY);
+    }
+  }
+
+  public void clearManualCrop() {
+    if (pipeline != null) {
+      pipeline.clearManualCrop();
     }
   }
 

@@ -7,6 +7,8 @@ import java.nio.ByteOrder;
 
 public class LandscapeAutoScaler {
   public final float[] landscapeMvpMatrix;
+  public final float[] manualMvpMatrix;
+  private boolean manualActive;
   private final float[] identityMvpMatrix;
   private final ExternalTextureRenderer externalTextureRenderer;
   private final int width;
@@ -30,6 +32,9 @@ public class LandscapeAutoScaler {
     identityMvpMatrix = new float[16];
     android.opengl.Matrix.setIdentityM(identityMvpMatrix, 0);
     android.opengl.Matrix.scaleM(identityMvpMatrix, 0, 1, 1, 1.0f);
+
+    manualMvpMatrix = new float[16];
+    android.opengl.Matrix.setIdentityM(manualMvpMatrix, 0);
   }
 
   public void onFrame() {
@@ -40,6 +45,9 @@ public class LandscapeAutoScaler {
   }
 
   private void adjustLandscapeMvpMatrix() {
+    if (manualActive) {
+      return;
+    }
     detectBlackBar();
     if (hasSymmetricBlackBar) {
       float scaleX = (float) (width) / (width - 2 * leftRightBlackBarSize);
@@ -179,6 +187,75 @@ public class LandscapeAutoScaler {
 
   private boolean isBlackPixel(byte r, byte g, byte b) {
     return (r & 0xFF) == 0 && (g & 0xFF) == 0 && (b & 0xFF) == 0;
+  }
+
+  public boolean isManualActive() {
+    return manualActive;
+  }
+
+  // Values are in output-frame pixels. Positive borders crop inward, negative borders add
+  // black padding. Zoom values are percentages applied around the cropped area center, so
+  // X and Y can be stretched independently.
+  public void setManualCrop(int left, int top, int right, int bottom, int zoomX, int zoomY) {
+    float maxBorderX = width * 0.45f;
+    float maxBorderY = height * 0.45f;
+    float l = _clamp(left, -maxBorderX, maxBorderX);
+    float t = _clamp(top, -maxBorderY, maxBorderY);
+    float r = _clamp(right, -maxBorderX, maxBorderX);
+    float b = _clamp(bottom, -maxBorderY, maxBorderY);
+
+    float minVisibleX = Math.max(16f, width * 0.1f);
+    float minVisibleY = Math.max(16f, height * 0.1f);
+    float visibleW = width - l - r;
+    float visibleH = height - t - b;
+    if (visibleW < minVisibleX) {
+      float excess = minVisibleX - visibleW;
+      l -= excess / 2f;
+      r -= excess / 2f;
+      visibleW = minVisibleX;
+    }
+    if (visibleH < minVisibleY) {
+      float excess = minVisibleY - visibleH;
+      t -= excess / 2f;
+      b -= excess / 2f;
+      visibleH = minVisibleY;
+    }
+
+    float zx = _clamp(zoomX, 50, 400) / 100f;
+    float zy = _clamp(zoomY, 50, 400) / 100f;
+    float scaleX = (width / visibleW) * zx;
+    float scaleY = (height / visibleH) * zy;
+    // keep the center of the cropped region at the center of the output frame
+    float translateX = (r - l) / visibleW;
+    float translateY = (b - t) / visibleH;
+
+    android.opengl.Matrix.setIdentityM(manualMvpMatrix, 0);
+    manualMvpMatrix[0] = scaleX;
+    manualMvpMatrix[5] = scaleY;
+    manualMvpMatrix[12] = translateX;
+    manualMvpMatrix[13] = translateY;
+    for (int i = 0; i < landscapeMvpMatrix.length; i++) {
+      landscapeMvpMatrix[i] = manualMvpMatrix[i];
+    }
+    manualActive = true;
+
+    Log.d(
+        "LandscapeAutoScaler",
+        String.format(
+            "Manual crop: %d,%d,%d,%d zoom=%d%%/%d%% -> scale=%.3f/%.3f translate=%.3f/%.3f",
+            left, top, right, bottom, zoomX, zoomY, scaleX, scaleY, translateX, translateY));
+  }
+
+  public void clearManualCrop() {
+    manualActive = false;
+    for (int i = 0; i < landscapeMvpMatrix.length; i++) {
+      landscapeMvpMatrix[i] = identityMvpMatrix[i];
+    }
+    Log.d("LandscapeAutoScaler", "Manual crop cleared");
+  }
+
+  private static float _clamp(float value, float min, float max) {
+    return Math.max(min, Math.min(max, value));
   }
 
   public void exitScale() {

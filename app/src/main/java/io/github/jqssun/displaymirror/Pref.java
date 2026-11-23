@@ -37,6 +37,13 @@ public class Pref {
   public static final String KEY_AIRPLAY_HEIGHT = "airplay_height";
   public static final String KEY_AIRPLAY_REFRESH_RATE = "airplay_refresh_rate";
   public static final String KEY_AIRPLAY_ENCODER = "airplay_encoder";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_ENABLED = "airplay_manual_crop_enabled";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_LEFT = "airplay_manual_crop_left";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_TOP = "airplay_manual_crop_top";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_RIGHT = "airplay_manual_crop_right";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_BOTTOM = "airplay_manual_crop_bottom";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_ZOOM_X = "airplay_manual_crop_zoom_x";
+  public static final String KEY_AIRPLAY_MANUAL_CROP_ZOOM_Y = "airplay_manual_crop_zoom_y";
 
   // displaylink
   public static final String KEY_DISPLAYLINK_WIDTH = "displaylink_width";
@@ -155,6 +162,39 @@ public class Pref {
   // empty means automatic encoder selection
   public static String getAirPlayEncoder() {
     return getString(KEY_AIRPLAY_ENCODER, "");
+  }
+
+  public static boolean getManualCropEnabled() {
+    return getBoolean(KEY_AIRPLAY_MANUAL_CROP_ENABLED, false);
+  }
+
+  // order: left, top, right, bottom, zoomX %, zoomY %
+  public static int[] getManualCrop() {
+    return new int[] {
+      getInt(KEY_AIRPLAY_MANUAL_CROP_LEFT, 0),
+      getInt(KEY_AIRPLAY_MANUAL_CROP_TOP, 0),
+      getInt(KEY_AIRPLAY_MANUAL_CROP_RIGHT, 0),
+      getInt(KEY_AIRPLAY_MANUAL_CROP_BOTTOM, 0),
+      getInt(KEY_AIRPLAY_MANUAL_CROP_ZOOM_X, 100),
+      getInt(KEY_AIRPLAY_MANUAL_CROP_ZOOM_Y, 100)
+    };
+  }
+
+  public static void setManualCrop(boolean enabled, int[] values) {
+    SharedPreferences preferences = getPreferences();
+    if (preferences == null || values == null || values.length < 6) {
+      return;
+    }
+    preferences
+        .edit()
+        .putBoolean(KEY_AIRPLAY_MANUAL_CROP_ENABLED, enabled)
+        .putInt(KEY_AIRPLAY_MANUAL_CROP_LEFT, values[0])
+        .putInt(KEY_AIRPLAY_MANUAL_CROP_TOP, values[1])
+        .putInt(KEY_AIRPLAY_MANUAL_CROP_RIGHT, values[2])
+        .putInt(KEY_AIRPLAY_MANUAL_CROP_BOTTOM, values[3])
+        .putInt(KEY_AIRPLAY_MANUAL_CROP_ZOOM_X, values[4])
+        .putInt(KEY_AIRPLAY_MANUAL_CROP_ZOOM_Y, values[5])
+        .apply();
   }
 
   public static int getDisplaylinkWidth() {

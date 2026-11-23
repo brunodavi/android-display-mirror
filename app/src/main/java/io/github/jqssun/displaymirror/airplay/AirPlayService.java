@@ -294,6 +294,17 @@ public class AirPlayService {
     }
   }
 
+  public void applyManualCrop(boolean enabled, int[] values) {
+    if (encoder == null || values == null || values.length < 6) {
+      return;
+    }
+    if (enabled) {
+      encoder.applyManualCrop(values[0], values[1], values[2], values[3], values[4], values[5]);
+    } else {
+      encoder.clearManualCrop();
+    }
+  }
+
   public void disconnect() {
     _stopEncoder();
     if (session != null) {

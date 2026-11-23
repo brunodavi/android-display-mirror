@@ -179,6 +179,31 @@ public class StreamRenderer {
         });
   }
 
+  public void setManualCrop(int left, int top, int right, int bottom, int zoomX, int zoomY) {
+    if (handler == null) {
+      return;
+    }
+    handler.post(
+        () -> {
+          if (stopped || scaler == null) {
+            return;
+          }
+          scaler.setManualCrop(left, top, right, bottom, zoomX, zoomY);
+        });
+  }
+
+  public void clearManualCrop() {
+    if (handler == null) {
+      return;
+    }
+    handler.post(
+        () -> {
+          if (scaler != null) {
+            scaler.clearManualCrop();
+          }
+        });
+  }
+
   public void exitCrop() {
     if (handler == null) {
       return;
@@ -438,6 +463,7 @@ public class StreamRenderer {
   private class Renderer implements SurfaceTexture.OnFrameAvailableListener {
     final ExternalTextureRenderer texRenderer;
     private final float[] matrix;
+    private final float[] combinedMatrix = new float[16];
 
     Renderer(int textureId, float[] matrix) {
       this.texRenderer = new ExternalTextureRenderer(textureId, sink != null);
@@ -448,7 +474,15 @@ public class StreamRenderer {
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
       try {
         surfaceTexture.updateTexImage();
-        float[] mvpMatrix = matrix != null ? matrix : scaler.landscapeMvpMatrix;
+        float[] mvpMatrix;
+        if (matrix != null && scaler.isManualActive()) {
+          // portrait has its own rotation matrix; apply the manual crop in output space
+          android.opengl.Matrix.multiplyMM(
+              combinedMatrix, 0, scaler.manualMvpMatrix, 0, matrix, 0);
+          mvpMatrix = combinedMatrix;
+        } else {
+          mvpMatrix = matrix != null ? matrix : scaler.landscapeMvpMatrix;
+        }
         if (sink != null) {
           texRenderer.renderFrame(mvpMatrix);
           sink.postFrame();

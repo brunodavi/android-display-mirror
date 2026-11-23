@@ -19,6 +19,7 @@ import io.github.jqssun.displaymirror.MainActivity;
 import io.github.jqssun.displaymirror.Pref;
 import io.github.jqssun.displaymirror.R;
 import io.github.jqssun.displaymirror.State;
+import io.github.jqssun.displaymirror.dialog.ManualCropDialog;
 import io.github.jqssun.displaymirror.dialog.PinDialog;
 import io.github.jqssun.displaymirror.dialog.ResolutionSettingsDialog;
 import java.util.ArrayList;
@@ -29,8 +30,8 @@ public class AirPlayFragment extends Fragment {
   private ImageView statusIcon;
   private Spinner deviceSpinner;
   private Spinner encoderSpinner;
-  private TextView encoderText;
-  private MaterialButton scanBtn, connectBtn, manageDisplayBtn, detectEncodersBtn;
+  private TextView encoderText, manualCropText;
+  private MaterialButton scanBtn, connectBtn, manageDisplayBtn, detectEncodersBtn, manualCropBtn;
   private LinearLayout manualLayout;
   private TextInputEditText manualIp, manualPort;
   private AirPlayService.AirPlayDevice _pendingDevice;
@@ -61,6 +62,8 @@ public class AirPlayFragment extends Fragment {
     detectEncodersBtn = view.findViewById(R.id.airplay_detect_encoders_btn);
     encoderSpinner = view.findViewById(R.id.airplay_encoder_spinner);
     encoderText = view.findViewById(R.id.airplay_encoder_text);
+    manualCropBtn = view.findViewById(R.id.airplay_manual_crop_btn);
+    manualCropText = view.findViewById(R.id.airplay_manual_crop_text);
 
     manualLayout = view.findViewById(R.id.airplay_manual_layout);
     manualIp = view.findViewById(R.id.airplay_manual_ip);
@@ -77,7 +80,19 @@ public class AirPlayFragment extends Fragment {
           airplaylib.Airplaylib.setAirPlay1Mode(c);
         });
     _updateEncoderText();
+    _updateManualCropText();
     detectEncodersBtn.setOnClickListener(v -> _detectEncoders());
+    manualCropBtn.setOnClickListener(
+        v ->
+            ManualCropDialog.show(
+                requireContext(),
+                Pref.getManualCrop(),
+                Pref.getManualCropEnabled(),
+                (values, enabled) -> {
+                  Pref.setManualCrop(enabled, values);
+                  AirPlayService.getInstance().applyManualCrop(enabled, values);
+                  _updateManualCropText();
+                }));
     manageDisplayBtn.setOnClickListener(
         v ->
             ((MainActivity) requireActivity())
@@ -321,6 +336,19 @@ public class AirPlayFragment extends Fragment {
             ? getString(R.string.airplay_encoder_auto)
             : selected;
     encoderText.setText(getString(R.string.airplay_encoder_current, label));
+  }
+
+  private void _updateManualCropText() {
+    if (manualCropText == null) return;
+    if (!Pref.getManualCropEnabled()) {
+      manualCropText.setText(R.string.airplay_manual_crop_off);
+      return;
+    }
+    int[] values = Pref.getManualCrop();
+    manualCropText.setText(
+        getString(
+            R.string.airplay_manual_crop_current,
+            values[0], values[1], values[2], values[3], values[4], values[5]));
   }
 
   private void _updateDeviceList() {
