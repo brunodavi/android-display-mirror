@@ -1,0 +1,149 @@
+{
+  "codec": "c2.android.avc.encoder",
+  "results": [
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1280,
+      "h": 720,
+      "fps": 30,
+      "variant": 0,
+      "variantName": "current-airplay2 (low-latency+max-bframes)",
+      "format": "{color-format=2130708361, i-frame-interval=3, low-latency=1, mime=video/avc, width=1280, bitrate=8000000, max-bframes=0, frame-rate=30, height=720}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1280,
+      "h": 720,
+      "fps": 30,
+      "variant": 1,
+      "variantName": "current-airplay1 (baseline L4 + low-latency + max-bframes)",
+      "format": "{color-format=2130708361, i-frame-interval=3, low-latency=1, level=2048, mime=video/avc, profile=1, width=1280, bitrate=8000000, max-bframes=0, frame-rate=30, height=720}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1280,
+      "h": 720,
+      "fps": 30,
+      "variant": 2,
+      "variantName": "base-only",
+      "format": "{color-format=2130708361, i-frame-interval=3, mime=video/avc, width=1280, bitrate=8000000, frame-rate=30, height=720}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1280,
+      "h": 720,
+      "fps": 30,
+      "variant": 3,
+      "variantName": "base+max-bframes",
+      "format": "{color-format=2130708361, i-frame-interval=3, mime=video/avc, width=1280, bitrate=8000000, max-bframes=0, frame-rate=30, height=720}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1280,
+      "h": 720,
+      "fps": 30,
+      "variant": 4,
+      "variantName": "base+low-latency",
+      "format": "{color-format=2130708361, i-frame-interval=3, low-latency=1, mime=video/avc, width=1280, bitrate=8000000, frame-rate=30, height=720}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1280,
+      "h": 720,
+      "fps": 30,
+      "variant": 5,
+      "variantName": "base+baselineL4",
+      "format": "{color-format=2130708361, i-frame-interval=3, level=2048, mime=video/avc, profile=1, width=1280, bitrate=8000000, frame-rate=30, height=720}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1920,
+      "h": 1080,
+      "fps": 30,
+      "variant": 0,
+      "variantName": "current-airplay2 (low-latency+max-bframes)",
+      "format": "{color-format=2130708361, i-frame-interval=3, low-latency=1, mime=video/avc, width=1920, bitrate=8000000, max-bframes=0, frame-rate=30, height=1080}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1920,
+      "h": 1080,
+      "fps": 30,
+      "variant": 1,
+      "variantName": "current-airplay1 (baseline L4 + low-latency + max-bframes)",
+      "format": "{color-format=2130708361, i-frame-interval=3, low-latency=1, level=2048, mime=video/avc, profile=1, width=1920, bitrate=8000000, max-bframes=0, frame-rate=30, height=1080}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1920,
+      "h": 1080,
+      "fps": 30,
+      "variant": 2,
+      "variantName": "base-only",
+      "format": "{color-format=2130708361, i-frame-interval=3, mime=video/avc, width=1920, bitrate=8000000, frame-rate=30, height=1080}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1920,
+      "h": 1080,
+      "fps": 30,
+      "variant": 3,
+      "variantName": "base+max-bframes",
+      "format": "{color-format=2130708361, i-frame-interval=3, mime=video/avc, width=1920, bitrate=8000000, max-bframes=0, frame-rate=30, height=1080}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1920,
+      "h": 1080,
+      "fps": 30,
+      "variant": 4,
+      "variantName": "base+low-latency",
+      "format": "{color-format=2130708361, i-frame-interval=3, low-latency=1, mime=video/avc, width=1920, bitrate=8000000, frame-rate=30, height=1080}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    },
+    {
+      "codec": "c2.android.avc.encoder",
+      "w": 1920,
+      "h": 1080,
+      "fps": 30,
+      "variant": 5,
+      "variantName": "base+baselineL4",
+      "format": "{color-format=2130708361, i-frame-interval=3, level=2048, mime=video/avc, profile=1, width=1920, bitrate=8000000, frame-rate=30, height=1080}",
+      "ok": true,
+      "stage": "done",
+      "surfaceInput": true
+    }
+  ]
+}

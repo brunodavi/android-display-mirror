@@ -1,0 +1,12 @@
+import android.media.MediaCodec;
+import android.media.MediaFormat;
+
+MediaCodec c = null;
+try {
+  c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC);
+  return "DEFAULT_AVC=" + c.getName();
+} catch (Throwable e) {
+  return "ERR " + e.getClass().getName() + ": " + e.getMessage();
+} finally {
+  if (c != null) c.release();
+}

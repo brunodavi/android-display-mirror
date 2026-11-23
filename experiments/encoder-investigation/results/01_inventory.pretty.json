@@ -1,0 +1,610 @@
+{
+    "device": {
+        "model": "SM-M625F",
+        "manufacturer": "samsung",
+        "device": "m62",
+        "product": "m62xx",
+        "board": "exynos9825",
+        "id": "TP1A.220624.014",
+        "release": "13",
+        "sdk": 33
+    },
+    "encoders": [
+        {
+            "name": "c2.android.aac.encoder",
+            "mimeTypes": [
+                "audio/mp4a-latm"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.aac.encoder",
+            "mimeTypes": [
+                "audio/mp4a-latm"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.amrnb.encoder",
+            "mimeTypes": [
+                "audio/3gpp"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.amrnb.encoder",
+            "mimeTypes": [
+                "audio/3gpp"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.amrwb.encoder",
+            "mimeTypes": [
+                "audio/amr-wb"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.amrwb.encoder",
+            "mimeTypes": [
+                "audio/amr-wb"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.flac.encoder",
+            "mimeTypes": [
+                "audio/flac"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.flac.encoder",
+            "mimeTypes": [
+                "audio/flac"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.opus.encoder",
+            "mimeTypes": [
+                "audio/opus"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.sec.aac.encoder",
+            "mimeTypes": [
+                "audio/mp4a-latm"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.AVC.Encoder",
+            "mimeTypes": [
+                "video/avc"
+            ],
+            "encoder": true,
+            "avc": true,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": [
+                {
+                    "mime": "video/avc",
+                    "surfaceInput": true,
+                    "colorFormats": [
+                        2135033992,
+                        19,
+                        21,
+                        2130706449,
+                        16,
+                        2130747392,
+                        2130708361,
+                        2130706450
+                    ],
+                    "profiles": [
+                        {
+                            "profile": 1,
+                            "level": 65536
+                        },
+                        {
+                            "profile": 2,
+                            "level": 65536
+                        },
+                        {
+                            "profile": 8,
+                            "level": 65536
+                        },
+                        {
+                            "profile": 65536,
+                            "level": 65536
+                        },
+                        {
+                            "profile": 524288,
+                            "level": 65536
+                        }
+                    ],
+                    "video": {
+                        "widths": {
+                            "lower": 32,
+                            "upper": 8192
+                        },
+                        "heights": {
+                            "lower": 32,
+                            "upper": 8192
+                        },
+                        "frameRates": {
+                            "lower": 0,
+                            "upper": 960
+                        },
+                        "bitrate": {
+                            "lower": 1,
+                            "upper": 120000000
+                        },
+                        "widthAlignment": 2,
+                        "heightAlignment": 2
+                    }
+                }
+            ]
+        },
+        {
+            "name": "OMX.Exynos.AVC.Encoder.secure",
+            "mimeTypes": [
+                "wfd/avc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.AVC.WFD.Encoder",
+            "mimeTypes": [
+                "wfd/avc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.AVC.WFD.Encoder.secure",
+            "mimeTypes": [
+                "wfd/avc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.H263.Encoder",
+            "mimeTypes": [
+                "video/3gpp"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.HEVC.Encoder",
+            "mimeTypes": [
+                "video/hevc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": true,
+            "kind": "hardware",
+            "caps": [
+                {
+                    "mime": "video/hevc",
+                    "surfaceInput": true,
+                    "colorFormats": [
+                        2135033992,
+                        19,
+                        21,
+                        2130706449,
+                        16,
+                        2130747392,
+                        2130708361,
+                        2130706450,
+                        2135032171
+                    ],
+                    "profiles": [
+                        {
+                            "profile": 1,
+                            "level": 2097152
+                        },
+                        {
+                            "profile": 2,
+                            "level": 2097152
+                        },
+                        {
+                            "profile": 4096,
+                            "level": 2097152
+                        }
+                    ],
+                    "video": {
+                        "widths": {
+                            "lower": 64,
+                            "upper": 8192
+                        },
+                        "heights": {
+                            "lower": 64,
+                            "upper": 8192
+                        },
+                        "frameRates": {
+                            "lower": 0,
+                            "upper": 960
+                        },
+                        "bitrate": {
+                            "lower": 1,
+                            "upper": 120000000
+                        },
+                        "widthAlignment": 2,
+                        "heightAlignment": 2
+                    }
+                }
+            ]
+        },
+        {
+            "name": "OMX.Exynos.HEVC.WFD.Encoder",
+            "mimeTypes": [
+                "wfd/hevc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.HEVC.WFD.Encoder.secure",
+            "mimeTypes": [
+                "wfd/hevc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.MPEG4.Encoder",
+            "mimeTypes": [
+                "video/mp4v-es"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.VP8.Encoder",
+            "mimeTypes": [
+                "video/x-vnd.on2.vp8"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "OMX.Exynos.VP9.Encoder",
+            "mimeTypes": [
+                "video/x-vnd.on2.vp9"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "hardware",
+            "caps": []
+        },
+        {
+            "name": "c2.android.avc.encoder",
+            "mimeTypes": [
+                "video/avc"
+            ],
+            "encoder": true,
+            "avc": true,
+            "hevc": false,
+            "kind": "software",
+            "caps": [
+                {
+                    "mime": "video/avc",
+                    "surfaceInput": true,
+                    "colorFormats": [
+                        2135033992,
+                        19,
+                        21,
+                        20,
+                        39,
+                        2130708361
+                    ],
+                    "profiles": [
+                        {
+                            "profile": 1,
+                            "level": 16384
+                        },
+                        {
+                            "profile": 65536,
+                            "level": 16384
+                        },
+                        {
+                            "profile": 2,
+                            "level": 16384
+                        }
+                    ],
+                    "video": {
+                        "widths": {
+                            "lower": 16,
+                            "upper": 2048
+                        },
+                        "heights": {
+                            "lower": 16,
+                            "upper": 2048
+                        },
+                        "frameRates": {
+                            "lower": 0,
+                            "upper": 960
+                        },
+                        "bitrate": {
+                            "lower": 1,
+                            "upper": 12000000
+                        },
+                        "widthAlignment": 2,
+                        "heightAlignment": 2
+                    }
+                }
+            ]
+        },
+        {
+            "name": "OMX.google.h264.encoder",
+            "mimeTypes": [
+                "video/avc"
+            ],
+            "encoder": true,
+            "avc": true,
+            "hevc": false,
+            "kind": "software",
+            "caps": [
+                {
+                    "mime": "video/avc",
+                    "surfaceInput": true,
+                    "colorFormats": [
+                        2135033992,
+                        19,
+                        21,
+                        20,
+                        39,
+                        2130708361
+                    ],
+                    "profiles": [
+                        {
+                            "profile": 1,
+                            "level": 16384
+                        },
+                        {
+                            "profile": 65536,
+                            "level": 16384
+                        },
+                        {
+                            "profile": 2,
+                            "level": 16384
+                        }
+                    ],
+                    "video": {
+                        "widths": {
+                            "lower": 16,
+                            "upper": 2048
+                        },
+                        "heights": {
+                            "lower": 16,
+                            "upper": 2048
+                        },
+                        "frameRates": {
+                            "lower": 0,
+                            "upper": 960
+                        },
+                        "bitrate": {
+                            "lower": 1,
+                            "upper": 12000000
+                        },
+                        "widthAlignment": 2,
+                        "heightAlignment": 2
+                    }
+                }
+            ]
+        },
+        {
+            "name": "c2.android.h263.encoder",
+            "mimeTypes": [
+                "video/3gpp"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.h263.encoder",
+            "mimeTypes": [
+                "video/3gpp"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.hevc.encoder",
+            "mimeTypes": [
+                "video/hevc"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": true,
+            "kind": "software",
+            "caps": [
+                {
+                    "mime": "video/hevc",
+                    "surfaceInput": true,
+                    "colorFormats": [
+                        2135033992,
+                        19,
+                        21,
+                        20,
+                        39,
+                        2130708361
+                    ],
+                    "profiles": [
+                        {
+                            "profile": 1,
+                            "level": 262144
+                        },
+                        {
+                            "profile": 4,
+                            "level": 262144
+                        }
+                    ],
+                    "video": {
+                        "widths": {
+                            "lower": 2,
+                            "upper": 512
+                        },
+                        "heights": {
+                            "lower": 2,
+                            "upper": 512
+                        },
+                        "frameRates": {
+                            "lower": 1,
+                            "upper": 300
+                        },
+                        "bitrate": {
+                            "lower": 1,
+                            "upper": 10000000
+                        },
+                        "widthAlignment": 2,
+                        "heightAlignment": 2
+                    }
+                }
+            ]
+        },
+        {
+            "name": "c2.android.mpeg4.encoder",
+            "mimeTypes": [
+                "video/mp4v-es"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.mpeg4.encoder",
+            "mimeTypes": [
+                "video/mp4v-es"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.vp8.encoder",
+            "mimeTypes": [
+                "video/x-vnd.on2.vp8"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.vp8.encoder",
+            "mimeTypes": [
+                "video/x-vnd.on2.vp8"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "c2.android.vp9.encoder",
+            "mimeTypes": [
+                "video/x-vnd.on2.vp9"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        },
+        {
+            "name": "OMX.google.vp9.encoder",
+            "mimeTypes": [
+                "video/x-vnd.on2.vp9"
+            ],
+            "encoder": true,
+            "avc": false,
+            "hevc": false,
+            "kind": "software",
+            "caps": []
+        }
+    ]
+}

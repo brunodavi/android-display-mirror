@@ -1,0 +1,108 @@
+// Test B/C/D - exact AirPlayEncoder format variants against one codec.
+// Edit CODEC_NAME / RESOLUTIONS to target another encoder.
+
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
+import android.view.Surface;
+
+String CODEC_NAME = "OMX.Exynos.AVC.Encoder";
+
+String j(String s) {
+  if (s == null) return "";
+  StringBuilder o = new StringBuilder();
+  for (int i = 0; i < s.length(); i++) {
+    char c = s.charAt(i);
+    if (c == '"') o.append("\\\"");
+    else if (c == '\\') o.append("\\\\");
+    else if (c == '\n') o.append("\\n");
+    else if (c == '\r') o.append("\\r");
+    else if (c == '\t') o.append("\\t");
+    else o.append(c);
+  }
+  return o.toString();
+}
+
+String variantName(int v) {
+  if (v == 0) return "current-airplay2 (low-latency+max-bframes)";
+  if (v == 1) return "current-airplay1 (baseline L4 + low-latency + max-bframes)";
+  if (v == 2) return "base-only";
+  if (v == 3) return "base+max-bframes";
+  if (v == 4) return "base+low-latency";
+  return "base+baselineL4";
+}
+
+MediaFormat buildFormat(int w, int h, int fps, int v) {
+  MediaFormat f = MediaFormat.createVideoFormat("video/avc", w, h);
+  f.setInteger(MediaFormat.KEY_BIT_RATE, 8000000);
+  f.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
+  f.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
+  f.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+  if (v == 0 || v == 1 || v == 4) f.setInteger(MediaFormat.KEY_LOW_LATENCY, 1);
+  if (v == 0 || v == 1 || v == 3) f.setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0);
+  if (v == 1 || v == 5) {
+    f.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline);
+    f.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel4);
+  }
+  return f;
+}
+
+String tryOne(String name, int w, int h, int fps, int v) {
+  MediaCodec c = null;
+  Surface surface = null;
+  boolean started = false;
+  String stage = "create";
+  String formatStr = "";
+  try {
+    MediaFormat f = buildFormat(w, h, fps, v);
+    formatStr = j(f.toString());
+    c = MediaCodec.createByCodecName(name);
+    stage = "configure";
+    c.configure(f, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+    stage = "createInputSurface";
+    surface = c.createInputSurface();
+    stage = "start";
+    c.start();
+    started = true;
+    stage = "done";
+  } catch (Throwable e) {
+    return "{\"codec\":\"" + j(name) + "\",\"w\":" + w + ",\"h\":" + h
+        + ",\"fps\":" + fps + ",\"variant\":" + v
+        + ",\"variantName\":\"" + j(variantName(v)) + "\""
+        + ",\"format\":\"" + formatStr + "\""
+        + ",\"ok\":false,\"stage\":\"" + j(stage) + "\""
+        + ",\"exception\":\"" + j(e.getClass().getName()) + "\""
+        + ",\"message\":\"" + j(e.getMessage()) + "\"}";
+  } finally {
+    if (started) {
+      try { c.stop(); } catch (Throwable ignored) {}
+    }
+    if (surface != null) {
+      try { surface.release(); } catch (Throwable ignored) {}
+    }
+    if (c != null) {
+      try { c.release(); } catch (Throwable ignored) {}
+    }
+  }
+  return "{\"codec\":\"" + j(name) + "\",\"w\":" + w + ",\"h\":" + h
+      + ",\"fps\":" + fps + ",\"variant\":" + v
+      + ",\"variantName\":\"" + j(variantName(v)) + "\""
+      + ",\"format\":\"" + formatStr + "\""
+      + ",\"ok\":true,\"stage\":\"done\",\"surfaceInput\":true}";
+}
+
+StringBuilder sb = new StringBuilder();
+sb.append("{\"codec\":\"").append(j(CODEC_NAME)).append("\",\"results\":[");
+int[][] sizes = new int[2][2];
+sizes[0][0] = 1280; sizes[0][1] = 720;
+sizes[1][0] = 1920; sizes[1][1] = 1080;
+boolean first = true;
+for (int s = 0; s < sizes.length; s++) {
+  for (int v = 0; v < 6; v++) {
+    if (!first) sb.append(",");
+    first = false;
+    sb.append(tryOne(CODEC_NAME, sizes[s][0], sizes[s][1], 30, v));
+  }
+}
+sb.append("]}");
+return sb.toString();

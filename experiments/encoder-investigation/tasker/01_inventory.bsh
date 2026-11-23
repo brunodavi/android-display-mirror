@@ -1,0 +1,164 @@
+// Test A - MediaCodec inventory on the device running Tasker.
+// BeanShell compatible: no lambdas, no generics, no streams.
+
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
+import android.media.MediaFormat;
+import android.os.Build;
+
+String j(String s) {
+  if (s == null) return "";
+  StringBuilder out = new StringBuilder();
+  for (int i = 0; i < s.length(); i++) {
+    char c = s.charAt(i);
+    if (c == '"') out.append("\\\"");
+    else if (c == '\\') out.append("\\\\");
+    else if (c == '\n') out.append("\\n");
+    else if (c == '\r') out.append("\\r");
+    else if (c == '\t') out.append("\\t");
+    else out.append(c);
+  }
+  return out.toString();
+}
+
+String rangeJson(Object r) {
+  if (r == null) return "null";
+  return "{\"lower\":" + r.getLower() + ",\"upper\":" + r.getUpper() + "}";
+}
+
+String colorFormatsJson(int[] a) {
+  StringBuilder out = new StringBuilder("[");
+  if (a != null) {
+    for (int i = 0; i < a.length; i++) {
+      if (i > 0) out.append(",");
+      out.append(a[i]);
+    }
+  }
+  return out.append("]").toString();
+}
+
+String typesJson(String[] a) {
+  StringBuilder out = new StringBuilder("[");
+  if (a != null) {
+    for (int i = 0; i < a.length; i++) {
+      if (i > 0) out.append(",");
+      out.append("\"").append(j(a[i])).append("\"");
+    }
+  }
+  return out.append("]").toString();
+}
+
+String profilesJson(MediaCodecInfo.CodecCapabilities caps) {
+  StringBuilder out = new StringBuilder("[");
+  if (caps != null && caps.profileLevels != null) {
+    for (int i = 0; i < caps.profileLevels.length; i++) {
+      if (i > 0) out.append(",");
+      out.append("{\"profile\":")
+          .append(caps.profileLevels[i].profile)
+          .append(",\"level\":")
+          .append(caps.profileLevels[i].level)
+          .append("}");
+    }
+  }
+  return out.append("]").toString();
+}
+
+String capsJson(MediaCodecInfo info, String mime) {
+  StringBuilder out = new StringBuilder();
+  MediaCodecInfo.CodecCapabilities caps = null;
+  try {
+    caps = info.getCapabilitiesForType(mime);
+  } catch (Throwable e) {
+    out.append("{\"mime\":\"").append(j(mime)).append("\",\"error\":\"")
+       .append(j(e.getClass().getName() + ": " + e.getMessage())).append("\"}");
+    return out.toString();
+  }
+
+  boolean surfaceInput = false;
+  int[] colors = caps.colorFormats;
+  if (colors != null) {
+    for (int i = 0; i < colors.length; i++) {
+      if (colors[i] == MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface) surfaceInput = true;
+    }
+  }
+
+  out.append("{\"mime\":\"").append(j(mime)).append("\"");
+  out.append(",\"surfaceInput\":").append(surfaceInput);
+  out.append(",\"colorFormats\":").append(colorFormatsJson(colors));
+  out.append(",\"profiles\":").append(profilesJson(caps));
+
+  MediaCodecInfo.VideoCapabilities vc = null;
+  try {
+    vc = caps.getVideoCapabilities();
+  } catch (Throwable ignored) {
+  }
+  if (vc == null) {
+    out.append(",\"video\":null}");
+    return out.toString();
+  }
+
+  out.append(",\"video\":{");
+  out.append("\"widths\":").append(rangeJson(vc.getSupportedWidths()));
+  out.append(",\"heights\":").append(rangeJson(vc.getSupportedHeights()));
+  out.append(",\"frameRates\":").append(rangeJson(vc.getSupportedFrameRates()));
+  out.append(",\"bitrate\":").append(rangeJson(vc.getBitrateRange()));
+  out.append(",\"widthAlignment\":").append(vc.getWidthAlignment());
+  out.append(",\"heightAlignment\":").append(vc.getHeightAlignment());
+  // NOTE: areSizeSupported()/getSupportedFrameRatesFor() make the Tasker HTTP bridge
+  // return 503 on this device, so only stable Range getters are used here.
+  out.append("}}");
+  return out.toString();
+}
+
+StringBuilder sb = new StringBuilder();
+sb.append("{\"device\":{");
+sb.append("\"model\":\"").append(j(Build.MODEL)).append("\"");
+sb.append(",\"manufacturer\":\"").append(j(Build.MANUFACTURER)).append("\"");
+sb.append(",\"device\":\"").append(j(Build.DEVICE)).append("\"");
+sb.append(",\"product\":\"").append(j(Build.PRODUCT)).append("\"");
+sb.append(",\"board\":\"").append(j(Build.BOARD)).append("\"");
+sb.append(",\"id\":\"").append(j(Build.ID)).append("\"");
+sb.append(",\"release\":\"").append(j(Build.VERSION.RELEASE)).append("\"");
+sb.append(",\"sdk\":").append(Build.VERSION.SDK_INT);
+sb.append("},\"encoders\":[");
+
+MediaCodecList list = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
+MediaCodecInfo[] infos = list.getCodecInfos();
+boolean first = true;
+for (int i = 0; i < infos.length; i++) {
+  MediaCodecInfo info = infos[i];
+  if (!info.isEncoder()) continue;
+  if (!first) sb.append(",");
+  first = false;
+  String[] types = info.getSupportedTypes();
+  boolean avc = false;
+  boolean hevc = false;
+  for (int t = 0; t < types.length; t++) {
+    if ("video/avc".equalsIgnoreCase(types[t])) avc = true;
+    if ("video/hevc".equalsIgnoreCase(types[t])) hevc = true;
+  }
+  String hw = "unknown";
+  try {
+    hw = info.isHardwareAccelerated() ? "hardware" : "software";
+  } catch (Throwable e) {
+    try {
+      hw = info.isSoftwareOnly() ? "software" : "hardware-ish";
+    } catch (Throwable ignored) {
+    }
+  }
+  sb.append("{\"name\":\"").append(j(info.getName())).append("\"");
+  sb.append(",\"mimeTypes\":").append(typesJson(types));
+  sb.append(",\"encoder\":true,\"avc\":").append(avc).append(",\"hevc\":").append(hevc);
+  sb.append(",\"kind\":\"").append(hw).append("\"");
+  sb.append(",\"caps\":[");
+  boolean firstCap = true;
+  for (int t = 0; t < types.length; t++) {
+    if (!"video/avc".equalsIgnoreCase(types[t]) && !"video/hevc".equalsIgnoreCase(types[t])) continue;
+    if (!firstCap) sb.append(",");
+    firstCap = false;
+    sb.append(capsJson(info, types[t]));
+  }
+  sb.append("]}");
+}
+sb.append("]}");
+return sb.toString();
